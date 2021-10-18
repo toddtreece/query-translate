@@ -1,0 +1,8 @@
+[package]
+name = "query-translator"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+pest = "2.0"
+pest_derive = "2.0"
