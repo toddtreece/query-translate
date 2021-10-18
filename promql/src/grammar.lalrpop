@@ -1,0 +1,55 @@
+use std::str::FromStr;
+use crate::ast::{TimeUnit, LabelMatcherOperator, RangeVector, LabelMatcher, Query};
+
+grammar;
+
+pub Query: Query = <metric_name:Name?> <label_matchers:LabelMatchers?> <range_vector: RangeVector?> => {
+    Query {
+        metric_name,
+        label_matchers: label_matchers.unwrap_or(vec![]),
+        range_vector,
+    }
+};
+
+pub LabelMatchers: Vec<LabelMatcher> = "{" <v:Comma<LabelMatcher>> "}" => v;
+LabelMatcher: LabelMatcher = <name:Name> <operator:LabelMatcherOperator> <value:StringLiteral> => LabelMatcher{<>};
+
+pub RangeVector: RangeVector = "[" <value:IntLiteral> <unit:TimeUnit>  "]" => RangeVector{<>};
+
+Name: String = <n:r"[a-zA-Z_][a-zA-Z0-9_]+"> => n.to_owned();
+IntLiteral: u64 = <s:r"[0-9]+"> => u64::from_str(s).unwrap();
+StringLiteral: String = <s:r#""[^"]*""#> => {
+    // TODO: find a better way to handle quotes with larlpop matching
+    let mut c = s.chars();
+    c.next();
+    c.next_back();
+    c.as_str().to_owned()
+};
+
+pub LabelMatcherOperator: LabelMatcherOperator = {
+    "=" => LabelMatcherOperator::Equal,
+    "!=" => LabelMatcherOperator::NotEqual,
+    "=~" => LabelMatcherOperator::Match,
+    "!~" => LabelMatcherOperator::NotMatch,
+};
+
+pub TimeUnit: TimeUnit = {
+    "ms" => TimeUnit::Millisecond,
+    "s" => TimeUnit::Second,
+    "m" => TimeUnit::Minute,
+    "h" => TimeUnit::Hour,
+    "d" => TimeUnit::Day,
+    "w" => TimeUnit::Week,
+    "y" => TimeUnit::Year,
+};
+
+
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};

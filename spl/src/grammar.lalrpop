@@ -1,0 +1,50 @@
+use std::str::FromStr;
+use crate::ast::{TimeUnit, Operator, Function, Expr, Query};
+
+grammar;
+
+pub Query: Query = <q:Exprs> => Query(q);
+
+Exprs: Vec<Expr> =  {
+    <mut v:(<Expr> "|")*> <e:Expr?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+}
+
+Expr: Expr = {
+    <f:Function> => Expr::Function(f),
+    <left:Name> <operator:Operator> <right:StringLiteral> => Expr::Filter{<>},
+}
+
+pub Function: Function = {
+    "earliest" <operator:Operator> "-" <value:IntLiteral> <unit:TimeUnit> => Function::Earliest{value, operator, unit},
+}
+
+Name: String = <n:r"[a-zA-Z_][a-zA-Z0-9_]+"> => n.to_owned();
+IntLiteral: u64 = <s:r"[0-9]+"> => u64::from_str(s).unwrap();
+StringLiteral: String = <s:r#""[^"]*""#> => {
+    // TODO: find a better way to handle quotes with larlpop matching
+    let mut c = s.chars();
+    c.next();
+    c.next_back();
+    c.as_str().to_owned()
+};
+
+pub Operator: Operator = {
+    "=" => Operator::Equal,
+};
+
+pub TimeUnit: TimeUnit = {
+    "s" => TimeUnit::Second,
+    "m" => TimeUnit::Minute,
+    "h" => TimeUnit::Hour,
+    "d" => TimeUnit::Day,
+    "w" => TimeUnit::Week,
+    "mon" => TimeUnit::Month,
+    "q" => TimeUnit::Quarter,
+    "y" => TimeUnit::Year,
+};
