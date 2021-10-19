@@ -1,8 +1,13 @@
 # Query Translator
 
-An experiment using larlpop to parse query languages into an AST to enable generating queries in a different query language. This could also be used to create a generic query interface for multiple query languages.
+A very hacked together experiment using [larlpop](https://github.com/lalrpop/lalrpop) to parse query languages into an AST.
 
-For example:
+Possible use cases:
+* Translate a query to a different query language
+* Create a generic query UI that can generate queries for multiple data sources
+* Extend query languages with UDFs that will be applied to query results in post processing
+
+Translation Example:
 SPL <--> AST <--> PromQL
 
 ![example](example.gif)
