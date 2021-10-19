@@ -8,3 +8,4 @@ lalrpop = "0.19.6"
 
 [dependencies]
 lalrpop-util = "0.19.6"
+ast = { path = '../ast'}
