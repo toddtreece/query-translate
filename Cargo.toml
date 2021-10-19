@@ -8,6 +8,8 @@ ansi_term = "0.12"
 linefeed = "0.6.0"
 promql =  {version= "0.1.0", path = "./promql"}
 spl =  {version= "0.1.0", path = "./spl"}
+ast =  {version= "0.1.0", path = "./ast"}
+tokio = { version = "1", features = ["full"] }
 
 [[bin]]
 name = "query-translator"

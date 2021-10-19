@@ -1,4 +1,4 @@
-use ast::time_series::{Expr, ScalarValue, Time};
+use ast::time_series::{Expr, Operator, ScalarValue, Time};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,6 +60,36 @@ impl From<ast::time_series::Query> for Query {
             }
             r
         })
+    }
+}
+
+impl From<Query> for ast::time_series::Query {
+    fn from(q: Query) -> Self {
+        let mut r = ast::time_series::Query(vec![]);
+        if let Some(metric) = q.metric_name.clone() {
+            r.0.push(Expr::Metric(metric));
+        }
+
+        if q.label_matchers.len() > 0 {
+            let mut labels = q
+                .label_matchers
+                .iter()
+                .map(|l| Expr::BinaryExpression {
+                    left: Box::new(Expr::Label(l.name.clone())),
+                    op: Operator::Equal,
+                    right: Box::new(Expr::Literal(ScalarValue::Utf8(Some(
+                        l.value.clone(),
+                    )))),
+                })
+                .collect::<Vec<Expr>>();
+            r.0.append(&mut labels);
+        }
+
+        if let Some(t) = q.range_vector.clone() {
+            r.0.push(Expr::TimeRange { from: q.range_vector, to: None });
+        }
+
+        r
     }
 }
 
