@@ -1,15 +1,8 @@
 # Query Translator
 
-Parse native query languages into an AST to enable generating queries in a different query language.
+Parse native query languages into an AST to enable generating queries in a different query language, or to create a generic query interface for multiple query languages.
 
 For example:
-PromQL <--> AST <--> SPL
+SPL <--> AST <--> PromQL
 
-```
-$ cargo run
-Type '\q' to exit.
-input> metric_name{test_one="one"}[5y]
-parsed: promql
-promql: metric_name{test_one="one"}[5y]
-spl: index="metric_name" | test_one="one" | earliest=-5y
-```
+![example](example.gif)

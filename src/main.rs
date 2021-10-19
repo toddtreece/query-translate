@@ -35,10 +35,10 @@ async fn main() {
         let mut ts = ast::time_series::Query(vec![]);
         let mut query_type = "none";
 
-        //if let Ok(s) = spl::grammar::QueryParser::new().parse(line.as_str()) {
-        //    query_type = "spl";
-        //    ts = s.into();
-        //}
+        if let Ok(s) = spl::grammar::QueryParser::new().parse(line.as_str()) {
+            query_type = "spl";
+            ts = s.into();
+        }
 
         if let Ok(p) = promql::grammar::QueryParser::new().parse(line.as_str())
         {

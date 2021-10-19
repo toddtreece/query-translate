@@ -32,11 +32,6 @@ impl From<time_series::Query> for Query {
     fn from(q: time_series::Query) -> Self {
         q.0.into_iter().fold(Query(vec![]), |mut r, e| {
             match e {
-                time_series::Expr::Metric(n) => r.0.push(Expr::Filter {
-                    left: "index".to_owned(),
-                    operator: Operator::Equal,
-                    right: n,
-                }),
                 time_series::Expr::TimeRange {
                     from: Some(time),
                     to: None,
@@ -60,8 +55,35 @@ impl From<time_series::Query> for Query {
     }
 }
 
+impl From<Query> for ast::time_series::Query {
+    fn from(q: Query) -> Self {
+        let res = ast::time_series::Query(vec![]);
+        q.0.into_iter().fold(res, |mut r, e| {
+            match e {
+                Expr::Function(Function::Earliest(time)) => {
+                    r.0.push(time_series::Expr::TimeRange {
+                        from: Some(time),
+                        to: None,
+                    })
+                }
+                Expr::Filter { left: name, operator, right: value } => {
+                    r.0.push(time_series::Expr::BinaryExpression {
+                        left: Box::new(time_series::Expr::Label(name)),
+                        right: Box::new(time_series::Expr::Literal(
+                            ScalarValue::Utf8(Some(value)),
+                        )),
+                        op: operator,
+                    })
+                }
+            }
+            r
+        })
+    }
+}
+
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "search ")?;
         if self.0.len() > 0 {
             write!(
                 f,
@@ -87,15 +109,10 @@ mod tests {
         use ast::time_series::{Interval, Operator, Time, TimeUnit};
 
         assert_eq!(
-            "index=\"metric_name\" | test_one=\"one\" | earliest=-10m",
+            "search test_one=\"one\" | earliest=-10m",
             format!(
                 "{}",
                 Query(vec![
-                    Expr::Filter {
-                        left: "index".to_owned(),
-                        operator: Operator::Equal,
-                        right: "metric_name".to_owned(),
-                    },
                     Expr::Filter {
                         left: "test_one".to_owned(),
                         operator: Operator::Equal,
@@ -110,12 +127,12 @@ mod tests {
     }
 
     #[test]
-    fn range_vector() {
+    fn from_ts() {
         use ast::time_series::{
             Expr, Interval, Operator, Query, ScalarValue, Time, TimeUnit,
         };
         assert_eq!(
-            "index=\"metric_name\" | test_one=\"one\" | earliest=-50w",
+            "search test_one=\"one\" | earliest=-50w",
             format!(
                 "{}",
                 super::Query::from(Query(vec![
@@ -137,5 +154,40 @@ mod tests {
                 ]))
             )
         );
+    }
+
+    #[test]
+    fn to_ts() {
+        use ast::time_series::{
+            Expr, Interval, Operator, Query, ScalarValue, Time, TimeUnit,
+        };
+        let q = super::Query(vec![
+            super::Expr::Filter {
+                left: "test_one".to_owned(),
+                operator: Operator::Equal,
+                right: "one".to_owned(),
+            },
+            super::Expr::Function(super::Function::Earliest(Time::Relative(
+                Interval { value: 50, unit: TimeUnit::Week },
+            ))),
+        ]);
+        let ts = Query(vec![
+            Expr::BinaryExpression {
+                left: Box::new(Expr::Label("test_one".to_owned())),
+                op: Operator::Equal,
+                right: Box::new(Expr::Literal(ScalarValue::Utf8(Some(
+                    "one".to_owned(),
+                )))),
+            },
+            Expr::TimeRange {
+                from: Some(Time::Relative(Interval {
+                    value: 50,
+                    unit: TimeUnit::Week,
+                })),
+                to: None,
+            },
+        ]);
+
+        assert_eq!(ts, Query::from(q));
     }
 }

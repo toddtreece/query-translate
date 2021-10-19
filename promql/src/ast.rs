@@ -85,7 +85,7 @@ impl From<Query> for ast::time_series::Query {
             r.0.append(&mut labels);
         }
 
-        if let Some(t) = q.range_vector.clone() {
+        if let Some(_) = q.range_vector.clone() {
             r.0.push(Expr::TimeRange { from: q.range_vector, to: None });
         }
 

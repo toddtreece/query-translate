@@ -14,23 +14,23 @@ mod tests {
         assert_eq!(
             Query(vec![
                 Expr::Filter {
-                    left: "index".to_owned(),
+                    left: "example".to_owned(),
                     operator: Operator::Equal,
-                    right: "metric_name".to_owned(),
+                    right: "test".to_owned(),
                 },
                 Expr::Filter {
-                    left: "test_one".to_owned(),
+                    left: "example_two".to_owned(),
                     operator: Operator::Equal,
-                    right: "one".to_owned(),
+                    right: "test2".to_owned(),
                 },
                 Expr::Function(Function::Earliest(Time::Relative(Interval {
-                    value: 10,
+                    value: 5,
                     unit: TimeUnit::Minute
                 })))
             ]),
             grammar::QueryParser::new()
                 .parse(
-                    "index=\"metric_name\" | test_one=\"one\" | earliest=-10m"
+                    "search example=\"test\" | example_two=\"test2\" | earliest=-5m"
                 )
                 .unwrap()
         );

@@ -4,7 +4,7 @@ use ast::time_series::{Operator, TimeUnit, Time, Interval};
 
 grammar;
 
-pub Query: Query = <q:Exprs> => Query(q);
+pub Query: Query = "search" <q:Exprs> => Query(q);
 
 Exprs: Vec<Expr> =  {
     <mut v:(<Expr> "|")*> <e:Expr?> => match e {

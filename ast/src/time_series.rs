@@ -4,29 +4,13 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query(pub Vec<Expr>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Metric(String),
     Label(String),
     Literal(ScalarValue),
     TimeRange { to: Option<Time>, from: Option<Time> },
     BinaryExpression { left: Box<Expr>, op: Operator, right: Box<Expr> },
-}
-
-impl PartialEq for Expr {
-    fn eq(&self, other: &Self) -> bool {
-        use Expr::*;
-        match (self, other) {
-            (Metric(a), Metric(b)) => a == b,
-            (Label(a), Label(b)) => a == b,
-            (Literal(a), Literal(b)) => a == b,
-            (
-                BinaryExpression { left: left_a, op: op_a, right: right_a },
-                BinaryExpression { left: left_b, op: op_b, right: right_b },
-            ) => left_a == left_b && op_a == op_b && right_a == right_b,
-            _ => false,
-        }
-    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
