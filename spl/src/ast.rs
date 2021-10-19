@@ -1,4 +1,4 @@
-use ast::time_series::{Operator, Time};
+use ast::time_series::{self, Operator, ScalarValue, Time};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +28,38 @@ impl fmt::Display for Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query(pub Vec<Expr>);
 
+impl From<time_series::Query> for Query {
+    fn from(q: time_series::Query) -> Self {
+        q.0.into_iter().fold(Query(vec![]), |mut r, e| {
+            match e {
+                time_series::Expr::Metric(n) => r.0.push(Expr::Filter {
+                    left: "index".to_owned(),
+                    operator: Operator::Equal,
+                    right: n,
+                }),
+                time_series::Expr::TimeRange {
+                    from: Some(time),
+                    to: None,
+                } => r.0.push(Expr::Function(Function::Earliest(time))),
+                time_series::Expr::BinaryExpression {
+                    left: box time_series::Expr::Label(name),
+                    right:
+                        box time_series::Expr::Literal(ScalarValue::Utf8(Some(
+                            value,
+                        ))),
+                    op: operator,
+                } => r.0.push(Expr::Filter {
+                    left: name,
+                    operator: operator,
+                    right: value,
+                }),
+                _ => {}
+            }
+            r
+        })
+    }
+}
+
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.0.len() > 0 {
@@ -49,11 +81,11 @@ impl fmt::Display for Query {
 #[cfg(test)]
 mod tests {
 
-    use super::{Expr, Function, Query};
-    use ast::time_series::{Interval, Operator, Time, TimeUnit};
-
     #[test]
     fn display() {
+        use super::{Expr, Function, Query};
+        use ast::time_series::{Interval, Operator, Time, TimeUnit};
+
         assert_eq!(
             "index=\"metric_name\" | test_one=\"one\" | earliest=-10m",
             format!(
@@ -74,6 +106,36 @@ mod tests {
                     )))
                 ])
             ),
+        );
+    }
+
+    #[test]
+    fn range_vector() {
+        use ast::time_series::{
+            Expr, Interval, Operator, Query, ScalarValue, Time, TimeUnit,
+        };
+        assert_eq!(
+            "index=\"metric_name\" | test_one=\"one\" | earliest=-50w",
+            format!(
+                "{}",
+                super::Query::from(Query(vec![
+                    Expr::Metric("metric_name".to_owned()),
+                    Expr::BinaryExpression {
+                        left: Box::new(Expr::Label("test_one".to_owned())),
+                        op: Operator::Equal,
+                        right: Box::new(Expr::Literal(ScalarValue::Utf8(
+                            Some("one".to_owned())
+                        )))
+                    },
+                    Expr::TimeRange {
+                        from: Some(Time::Relative(Interval {
+                            value: 50,
+                            unit: TimeUnit::Week
+                        })),
+                        to: None
+                    },
+                ]))
+            )
         );
     }
 }
